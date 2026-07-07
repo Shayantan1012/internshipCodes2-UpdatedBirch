@@ -329,8 +329,10 @@ PilotResult pilotKMeans(const std::vector<Point>& points, size_t k)
         bool changed=false;
         for(size_t i=0; i<points.size(); ++i)
         {
-            int best=0; double bestDistance=distanceSquared(points[i], centers.front());
-            for(size_t c=1; c<k; ++c) { const double d=distanceSquared(points[i], centers[c]); if(d<bestDistance){bestDistance=d;best=static_cast<int>(c);} }
+            int best=0;
+            double bestDistance=distanceSquared(points[i], centers.front());
+            for(size_t c=1; c<k; ++c) { const double d=distanceSquared(points[i], centers[c]);
+            if(d<bestDistance){bestDistance=d;best=static_cast<int>(c);} }
             if(labels[i]!=best){labels[i]=best;changed=true;}
         }
         std::vector<Point> updated(k, Point(points.front().size(),0.0)); std::vector<size_t> counts(k,0);
