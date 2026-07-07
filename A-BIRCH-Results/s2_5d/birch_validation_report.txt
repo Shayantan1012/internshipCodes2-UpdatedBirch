@@ -1,0 +1,60 @@
+A-BIRCH / TREE-BIRCH VALIDATION REPORT
+=====================================
+
+No LOF and no global k-means phase were used.
+
+Monotonic leading sequence/TOA excluded from distance: NO
+
+AUTOMATIC THRESHOLD ESTIMATION
+Pilot clusters (Gap Statistic)=3
+Rmax=0.5092 Dmin=0.778409 wrmax=6.32075
+Formula threshold=0.529058 Applied threshold=0.529058
+Condition 6*Rmax <= Dmin: WARNING
+Weight-ratio condition: WARNING
+
+TREE RESULTS
+Branching factor=32 Minimum cluster points=5
+Leaf CFs=6
+Automatically estimated clusters (Gap Statistic)=3
+Final detected BIRCH clusters=3
+Retained clusters=3 Noise rows from small CFs=2613 CF weight=32343
+
+DETECTED CLUSTER POPULATIONS
+Internal cluster 0=21053 rows
+Internal cluster 1=7825 rows
+Internal cluster 2=852 rows
+Noise=2613 rows
+Total assigned=32343 rows
+
+TREE-BIRCH SMALL-CF NOISE DETECTION
+TP=2606 FP=7 FN=1394 TN=28336
+Precision=0.997321 Recall=0.6515 F1=0.788145
+
+BIRCH EMITTER CLUSTERING
+Accuracy=0.999753 (28336/28343)
+Emitter_1 Precision=1 Recall=0.999712 F1=0.999856
+Emitter_2 Precision=1 Recall=0.999867 F1=0.999933
+
+COMBINED PIPELINE
+Accuracy=0.956683 (30942/32343)
+Emitter_1 Precision=0.989075 Recall=0.999712 F1=0.994365
+Emitter_2 Precision=0.960128 Recall=0.999867 F1=0.979594
+Noise Precision=0.997321 Recall=0.6515 F1=0.788145
+
+CONFUSION MATRIX (rows=true, columns=predicted)
+true/predicted,Emitter_1,Emitter_2,Noise,Emitter_3
+Emitter_1,20823,0,6,0
+Emitter_2,0,7513,1,0
+Noise,230,312,2606,852
+Emitter_3,0,0,0,0
+Adjusted Rand Index=0.956185
+
+INTERNAL CLUSTER VALIDITY INDICES
+Predicted Noise rows excluded. Lower DB and SD values are preferred.
+Points evaluated=29730
+Clusters evaluated=3
+Davies-Bouldin index=0.780922
+SD Scat=0.531726
+SD Dis=2.087341
+SD Alpha=2.087341
+SD index=3.197233

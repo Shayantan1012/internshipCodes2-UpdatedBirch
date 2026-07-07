@@ -1,0 +1,31 @@
+Dataset: two_emitter_pdw_labeled.csv
+Rows: 1900
+Features: 5
+BIRCH radius threshold (standardized): 0.65
+Branching factor: 32
+Leaf CF micro-clusters: 70
+Selected final clusters: 9
+Weighted silhouette: 0.969638
+Within-cluster SSE (standardized): 704.815
+Signal rows evaluated: 1800
+Ground-truth noise rows (excluded from class metrics): 100
+Cluster-majority accuracy (purity): 1
+Macro F1 after majority mapping: 1
+Adjusted Rand index: 0.502896
+
+Cluster populations:
+  Cluster 0: 10 (0.526316%)
+  Cluster 1: 572 (30.1053%)
+  Cluster 2: 13 (0.684211%)
+  Cluster 3: 445 (23.4211%)
+  Cluster 4: 13 (0.684211%)
+  Cluster 5: 16 (0.842105%)
+  Cluster 6: 375 (19.7368%)
+  Cluster 7: 442 (23.2632%)
+  Cluster 8: 14 (0.736842%)
+
+Interpretation:
+  Cluster IDs are anonymous. Use cluster_profiles.csv for the physical RF/PW/angle signature.
+  Silhouette near 1 means compact, separated clusters; near 0 means overlap.
+  Accuracy/F1 map each cluster to its majority class; ARI is permutation-invariant and penalizes over-clustering.
+  Noise labels are not used during fitting and are separated from signal-only evaluation.

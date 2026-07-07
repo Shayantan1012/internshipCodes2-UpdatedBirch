@@ -1,0 +1,7 @@
+dataset,status,result_folder
+s1_5d.csv,analyzed,Results/s1_5d
+s2_5d.csv,analyzed,Results/s2_5d
+s5_5d.csv,analyzed,Results/s5_5d
+s6_5d.csv,analyzed,Results/s6_5d
+two_emitter_pdw_dataset.csv,skipped_duplicate_labeled_counterpart,
+two_emitter_pdw_labeled.csv,analyzed,Results/two_emitter_pdw_labeled

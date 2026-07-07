@@ -1,0 +1,25 @@
+Dataset: s5_5d.csv
+Rows: 32000
+Features: 5
+BIRCH radius threshold (standardized): 0.65
+Branching factor: 32
+Leaf CF micro-clusters: 481
+Selected final clusters: 3
+Weighted silhouette: 0.610547
+Within-cluster SSE (standardized): 59785.5
+Signal rows evaluated: 27413
+Ground-truth noise rows (excluded from class metrics): 4587
+Cluster-majority accuracy (purity): 0.999927
+Macro F1 after majority mapping: 0.9999
+Adjusted Rand index: 0.998853
+
+Cluster populations:
+  Cluster 0: 2841 (8.87813%)
+  Cluster 1: 21831 (68.2219%)
+  Cluster 2: 7328 (22.9%)
+
+Interpretation:
+  Cluster IDs are anonymous. Use cluster_profiles.csv for the physical RF/PW/angle signature.
+  Silhouette near 1 means compact, separated clusters; near 0 means overlap.
+  Accuracy/F1 map each cluster to its majority class; ARI is permutation-invariant and penalizes over-clustering.
+  Noise labels are not used during fitting and are separated from signal-only evaluation.
