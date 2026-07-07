@@ -1,4 +1,4 @@
-# A-BIRCH + MBD-BIRCH research implementation
+# Distance-based kNN noise detection + A-BIRCH + MBD-BIRCH research implementation
 
 The canonical BIRCH-only implementation combines automatic A-BIRCH threshold estimation with MBD-BIRCH multiple-branch descent. It is in [`Birch-Implementation`](Birch-Implementation/README.md), and the canonical input files are in `Datasets/`.
 
