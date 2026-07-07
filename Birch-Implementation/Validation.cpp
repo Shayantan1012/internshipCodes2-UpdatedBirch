@@ -313,11 +313,6 @@ void runSelfTests()
     if(mbdWeight!=100 || mbdEntries.size()<2)
         throw std::logic_error("MBD-BIRCH multiple-branch test failed");
 
-    const std::vector<CF> condensed = condensePreservingWeight(entries, 60);
-    const size_t condensedWeight = std::accumulate(condensed.begin(), condensed.end(), size_t{0},
-        [](size_t total, const CF& entry) { return total + entry.n; });
-    if(condensedWeight != 100) throw std::logic_error("Condensation weight test failed");
-
     const std::vector<Point> pilot{{0,0},{0.01,0},{0,0.01},{1,1},{1.01,1},{1,1.01}};
     const ABirchEstimate estimate = estimateABirchThreshold(pilot, pilot.size(), 3);
     if(!(estimate.threshold > 0.0) || estimate.pilotClusters < 2)

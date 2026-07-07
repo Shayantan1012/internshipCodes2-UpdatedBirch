@@ -2,15 +2,6 @@
 
 The canonical BIRCH-only implementation combines automatic A-BIRCH threshold estimation with MBD-BIRCH multiple-branch descent. It is in [`Birch-Implementation`](Birch-Implementation/README.md), and the canonical input files are in `Datasets/`.
 
-Build from the repository root:
-
-```powershell
-cmake -S . -B build
-cmake --build build --config Release
-```
-
-The checked-in `Birch-Implementation/birch_improved.exe` was compiled and validated on the supplied two-emitter dataset. Its latest predictions and complete metrics are stored beside it as `improved_results.csv` and `improved_validation_report.txt`.
-
 ## Easy Ubuntu run
 
 ```bash

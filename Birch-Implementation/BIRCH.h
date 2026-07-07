@@ -58,14 +58,6 @@ public:
     std::vector<CF> leafEntries() const;
 };
 
-std::vector<CF> condensePreservingWeight(const std::vector<CF>& entries, size_t minimumPoints);
-std::vector<int> weightedKMeans(const std::vector<CF>& entries, size_t k);
-std::vector<int> assignPoints(const std::vector<Point>& points, const std::vector<CF>& entries,
-                              const std::vector<int>& entryLabels);
-std::vector<Point> globalCenters(const std::vector<CF>& entries,
-                                 const std::vector<int>& entryLabels, size_t clusterCount);
-std::vector<int> assignToCenters(const std::vector<Point>& points,
-                                 const std::vector<Point>& centers);
 std::vector<std::string> emitterNames(const std::vector<Point>& raw, const std::vector<int>& labels,
                                       size_t clusterCount);
 ABirchEstimate estimateABirchThreshold(const std::vector<Point>& points,

@@ -10,6 +10,7 @@
 #include <limits>
 #include <memory>
 #include <numeric>
+#include <random>
 #include <sstream>
 #include <stdexcept>
 #include <string>

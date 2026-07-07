@@ -277,185 +277,6 @@ std::vector<CF> CFTree::leafEntries() const
     return result;
 }
 
-std::vector<CF> condensePreservingWeight(const std::vector<CF>& entries, size_t minimumPoints)
-{
-    std::vector<CF> retained, small;
-    for(const CF& entry : entries) (entry.n >= minimumPoints ? retained : small).push_back(entry);
-    if(retained.empty()) return entries;
-    for(const CF& entry : small)
-    {
-        const size_t index = [&]() {
-            size_t best = 0;
-            double bestDistance = std::numeric_limits<double>::infinity();
-            for(size_t i=0; i<retained.size(); ++i)
-            {
-                const double current = distanceSquared(entry.centroid(), retained[i].centroid());
-                if(current < bestDistance)
-                {
-                    bestDistance = current;
-                    best = i;
-                }
-            }
-            return best;
-        }();
-        retained[index].merge(entry);
-    }
-    return retained;
-}
-
-std::vector<int> weightedKMeans(const std::vector<CF>& entries, size_t k)
-{
-    if(entries.empty()) throw std::runtime_error("No CF entries available for global clustering");
-    if(k == 0 || k > entries.size()) throw std::runtime_error("Invalid global cluster count");
-    auto optimize = [&](std::vector<Point> centers) {
-        std::vector<int> labels(entries.size(), -1);
-        for(size_t iteration=0; iteration<300; ++iteration)
-        {
-            bool changed = false;
-            for(size_t i=0; i<entries.size(); ++i)
-            {
-                int best = 0;
-                double bestDistance = std::numeric_limits<double>::infinity();
-                for(size_t cluster=0; cluster<k; ++cluster)
-                {
-                    const double current = distanceSquared(entries[i].centroid(), centers[cluster]);
-                    if(current < bestDistance)
-                    {
-                        bestDistance = current;
-                        best = static_cast<int>(cluster);
-                    }
-                }
-                if(labels[i] != best)
-                {
-                    labels[i] = best;
-                    changed = true;
-                }
-            }
-            std::vector<Point> updated(k, Point(centers.front().size(), 0.0));
-            std::vector<size_t> weights(k, 0);
-            for(size_t i=0; i<entries.size(); ++i)
-            {
-                weights[labels[i]] += entries[i].n;
-                const Point center = entries[i].centroid();
-                for(size_t j=0; j<center.size(); ++j) updated[labels[i]][j] += center[j] * entries[i].n;
-            }
-            for(size_t cluster=0; cluster<k; ++cluster)
-                if(weights[cluster] != 0)
-                    for(double& value : updated[cluster]) value /= weights[cluster];
-                else updated[cluster] = centers[cluster];
-            centers = std::move(updated);
-            if(!changed) break;
-        }
-        double objective = 0.0;
-        for(size_t i=0; i<entries.size(); ++i)
-            objective += entries[i].n * distanceSquared(entries[i].centroid(), centers[labels[i]]);
-        return std::make_pair(objective, labels);
-    };
-
-    // For the two-emitter pipeline, try every distinct pair of micro-cluster
-    // centroids. This removes the strong order dependence of one-shot seeds.
-    std::pair<double,std::vector<int>> best{std::numeric_limits<double>::infinity(), {}};
-    if(k == 2)
-    {
-        for(size_t first=0; first<entries.size(); ++first)
-            for(size_t second=first+1; second<entries.size(); ++second)
-            {
-                auto candidate = optimize({entries[first].centroid(), entries[second].centroid()});
-                if(candidate.first < best.first) best = std::move(candidate);
-            }
-    }
-    else
-    {
-        std::vector<Point> centers{entries.front().centroid()};
-        while(centers.size() < k)
-        {
-            size_t farthest = 0;
-            double farthestDistance = -1.0;
-            for(size_t i=0; i<entries.size(); ++i)
-            {
-                double nearest = std::numeric_limits<double>::infinity();
-                for(const Point& center : centers)
-                    nearest = std::min(nearest, distanceSquared(entries[i].centroid(), center));
-                if(nearest > farthestDistance)
-                {
-                    farthestDistance = nearest;
-                    farthest = i;
-                }
-            }
-            centers.push_back(entries[farthest].centroid());
-        }
-        best = optimize(std::move(centers));
-    }
-    return best.second;
-}
-
-std::vector<int> assignPoints(const std::vector<Point>& points, const std::vector<CF>& entries,
-                              const std::vector<int>& entryLabels)
-{
-    std::vector<int> result;
-    result.reserve(points.size());
-    for(const Point& point : points)
-    {
-        size_t best = 0;
-        double bestDistance = std::numeric_limits<double>::infinity();
-        for(size_t i=0; i<entries.size(); ++i)
-        {
-            const double current = distanceSquared(point, entries[i].centroid());
-            if(current < bestDistance)
-            {
-                bestDistance = current;
-                best = i;
-            }
-        }
-        result.push_back(entryLabels[best]);
-    }
-    return result;
-}
-
-std::vector<Point> globalCenters(const std::vector<CF>& entries,
-                                 const std::vector<int>& entryLabels, size_t clusterCount)
-{
-    if(entries.empty() || entries.size() != entryLabels.size())
-        throw std::invalid_argument("Invalid CF labels for global centers");
-    std::vector<Point> centers(clusterCount, Point(entries.front().linearSum.size(), 0.0));
-    std::vector<size_t> weights(clusterCount, 0);
-    for(size_t i=0; i<entries.size(); ++i)
-    {
-        const int label = entryLabels[i];
-        if(label < 0 || static_cast<size_t>(label) >= clusterCount)
-            throw std::logic_error("Global CF label out of range");
-        weights[label] += entries[i].n;
-        for(size_t j=0; j<centers[label].size(); ++j)
-            centers[label][j] += entries[i].linearSum[j];
-    }
-    for(size_t cluster=0; cluster<clusterCount; ++cluster)
-    {
-        if(weights[cluster] == 0) throw std::logic_error("Empty global BIRCH cluster");
-        for(double& value : centers[cluster]) value /= weights[cluster];
-    }
-    return centers;
-}
-
-std::vector<int> assignToCenters(const std::vector<Point>& points,
-                                 const std::vector<Point>& centers)
-{
-    if(centers.empty()) throw std::invalid_argument("No global centers available");
-    std::vector<int> labels;
-    labels.reserve(points.size());
-    for(const Point& point : points)
-    {
-        size_t best = 0;
-        double bestDistance = distanceSquared(point, centers.front());
-        for(size_t cluster=1; cluster<centers.size(); ++cluster)
-        {
-            const double current = distanceSquared(point, centers[cluster]);
-            if(current < bestDistance) { bestDistance = current; best = cluster; }
-        }
-        labels.push_back(static_cast<int>(best));
-    }
-    return labels;
-}
-
 std::vector<std::string> emitterNames(const std::vector<Point>& raw, const std::vector<int>& labels,
                                       size_t clusterCount)
 {
@@ -537,7 +358,7 @@ ABirchEstimate estimateABirchThreshold(const std::vector<Point>& points,
 
     const size_t maxK = std::min({maximumPilotClusters, sample.size() - 1, size_t{12}});
     std::vector<double> gap(maxK + 1), standard(maxK + 1);
-    std::vector<PilotResult> observed(maxK + 1);
+    std::vector<PilotResult> observed(maxK + 1);              
     Point low(sample.front().size(), 1.0), high(sample.front().size(), 0.0);
     for(const Point& point : sample)
         for(size_t j = 0; j < point.size(); ++j)
@@ -547,6 +368,7 @@ ABirchEstimate estimateABirchThreshold(const std::vector<Point>& points,
         }
 
     constexpr size_t references = 5;
+    constexpr unsigned gapRandomSeed = 42;
     for(size_t k = 1; k <= maxK; ++k)
     {
         observed[k] = pilotKMeans(sample, k);
@@ -554,13 +376,18 @@ ABirchEstimate estimateABirchThreshold(const std::vector<Point>& points,
         for(size_t b = 0; b < references; ++b)
         {
             std::vector<Point> reference(sampleSize, Point(low.size()));
-            uint64_t state = 1469598103934665603ULL + k * 1099511628211ULL + b;
+            std::seed_seq seed{
+                gapRandomSeed,
+                static_cast<unsigned>(k),
+                static_cast<unsigned>(b)
+            };
+            std::mt19937 generator(seed);
+            std::uniform_real_distribution<double> uniform(0.0, 1.0);
             for(Point& point : reference)
                 for(size_t j = 0; j < point.size(); ++j)
                 {
-                    state = state * 6364136223846793005ULL + 1442695040888963407ULL;
-                    const double uniform = (state >> 11) * (1.0 / 9007199254740992.0);
-                    point[j] = low[j] + uniform * (high[j] - low[j]);
+                    const double randomValue = uniform(generator);
+                    point[j] = low[j] + randomValue * (high[j] - low[j]);
                 }
             logs.push_back(std::log(std::max(1e-15, pilotKMeans(reference, k).dispersion)));
         }
