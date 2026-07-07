@@ -3,6 +3,7 @@
 #include "BIRCH.h"
 #include "Validation.h"
 #include "Pipeline.h"
+#include "KNNOutlier.h"
 
 #include <map>
 
@@ -19,6 +20,31 @@ Score classScore(const std::vector<std::string>& truth, const std::vector<std::s
     const double precision = tp + fp == 0 ? 0.0 : static_cast<double>(tp) / (tp + fp);
     const double recall = tp + fn == 0 ? 0.0 : static_cast<double>(tp) / (tp + fn);
     return {precision, recall, precision + recall == 0.0 ? 0.0 : 2.0 * precision * recall / (precision + recall)};
+}
+
+std::vector<std::string> alignClusterNamesForEvaluation(
+    const std::vector<std::string>& truth, const std::vector<std::string>& predicted)
+{
+    if(truth.size()!=predicted.size())
+        throw std::invalid_argument("Evaluation alignment size mismatch");
+    std::map<std::string,std::map<std::string,size_t>> overlap;
+    for(size_t i=0;i<truth.size();++i)
+        if(predicted[i]!="Noise" && truth[i]!="Noise") ++overlap[predicted[i]][truth[i]];
+    std::map<std::string,std::string> mapping;
+    for(const auto& cluster : overlap)
+    {
+        size_t bestCount=0;
+        for(const auto& candidate : cluster.second)
+            if(candidate.second>bestCount)
+            {
+                bestCount=candidate.second;
+                mapping[cluster.first]=candidate.first;
+            }
+    }
+    std::vector<std::string> aligned=predicted;
+    for(std::string& label : aligned)
+        if(label!="Noise" && mapping.find(label)!=mapping.end()) label=mapping[label];
+    return aligned;
 }
 
 void writeMetrics(std::ostream& output, const std::vector<std::string>& truth,
@@ -120,7 +146,8 @@ void saveResults(const std::string& filename, const Dataset& data, const std::ve
 {
     std::ofstream output(filename);
     if(!output) throw std::runtime_error("Cannot create result CSV: " + filename);
-    output << "TOA_ns,Freq_MHz,PW_ns,Az_deg,El_deg,Ground_Truth,Predicted_Cluster\n";
+    for(const std::string& name : data.featureNames) output << name << ',';
+    output << "Ground_Truth,Predicted_Cluster\n";
     output << std::setprecision(12);
     for(size_t i=0; i<data.raw.size(); ++i)
     {
@@ -265,12 +292,26 @@ void writeValidityIndices(std::ostream& output, const std::vector<Point>& normal
 
 void runSelfTests()
 {
+    const std::vector<Point> knnPoints{{0,0},{0.01,0},{0,0.01},{10,10}};
+    const KNNOutlierResult knn=detectKNNOutliers(knnPoints,1,0.25);
+    if(knn.count!=1 || !knn.outlier[3])
+        throw std::logic_error("Distance-based kNN outlier test failed");
+
     CFTree tree(0.05, 3);
     for(int i=0; i<100; ++i) tree.insert({i < 50 ? i * 0.0001 : 1.0 + i * 0.0001, 0.0});
     const std::vector<CF> entries = tree.leafEntries();
     const size_t weight = std::accumulate(entries.begin(), entries.end(), size_t{0},
         [](size_t total, const CF& entry) { return total + entry.n; });
     if(weight != 100 || entries.size() < 2) throw std::logic_error("Recursive CF-tree test failed");
+
+    CFTree mbdTree(0.05, 3, 0.10);
+    for(int i=0; i<100; ++i)
+        mbdTree.insert({i < 50 ? i*0.0001 : 1.0+i*0.0001, 0.0});
+    const std::vector<CF> mbdEntries=mbdTree.leafEntries();
+    const size_t mbdWeight=std::accumulate(mbdEntries.begin(),mbdEntries.end(),size_t{0},
+        [](size_t total,const CF& entry){return total+entry.n;});
+    if(mbdWeight!=100 || mbdEntries.size()<2)
+        throw std::logic_error("MBD-BIRCH multiple-branch test failed");
 
     const std::vector<CF> condensed = condensePreservingWeight(entries, 60);
     const size_t condensedWeight = std::accumulate(condensed.begin(), condensed.end(), size_t{0},

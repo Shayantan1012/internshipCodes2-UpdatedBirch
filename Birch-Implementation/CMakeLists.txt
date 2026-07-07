@@ -9,6 +9,7 @@ add_executable(birch_corrected
     main.cpp
     Common.cpp
     Dataset.cpp
+    KNNOutlier.cpp
     BIRCH.cpp
     Validation.cpp
     Pipeline.cpp)

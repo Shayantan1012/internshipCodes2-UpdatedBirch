@@ -17,6 +17,7 @@ SOURCES = [
     "main.cpp",
     "Common.cpp",
     "Dataset.cpp",
+    "KNNOutlier.cpp",
     "BIRCH.cpp",
     "Validation.cpp",
     "Pipeline.cpp",
@@ -47,6 +48,16 @@ def arguments() -> argparse.Namespace:
         default=-1.0,
         help="Negative selects the paper's automatic threshold.",
     )
+    parser.add_argument(
+        "--mbd-spread",
+        type=float,
+        default=0.05,
+        help="MBD-BIRCH multiple-branch distance allowance s; use 0 for ordinary tree-BIRCH.",
+    )
+    parser.add_argument("--knn-k",type=int,default=3,
+                        help="Neighbor rank used by distance-based kNN outlier detection.")
+    parser.add_argument("--knn-outlier-fraction",type=float,default=0.10,
+                        help="Fraction m/n of largest k-distances removed before BIRCH.")
     parser.add_argument("--compiler", default="g++")
     parser.add_argument("--skip-build", action="store_true")
     parser.add_argument("--skip-tests", action="store_true")
@@ -57,14 +68,25 @@ def prepare_combined(source:Path,destination:Path)->tuple[Path,Path]:
     with source.open(newline="",encoding="utf-8-sig") as f: rows=list(csv.reader(f))
     if not rows or "Emitter" not in rows[0]: raise ValueError(f"Missing Emitter column: {source}")
     header=rows[0];label_index=header.index("Emitter")
-    feature_indices=[i for i,name in enumerate(header[:label_index]) if name.strip()]
+    wanted = {
+        "radio frequency", "frequency", "freq_mhz",
+        "pulse width", "pw", "pw_ns",
+        "azimuth", "az", "az_deg",
+        "angle of elevation", "elevation", "el", "el_deg",
+    }
+    feature_indices = [
+        i for i, name in enumerate(header[:label_index])
+        if name.strip().lower() in wanted
+    ]
+    if len(feature_indices) != 4:
+        raise ValueError(f"Expected frequency, PW, azimuth and elevation in {source}")
     parsed=[];sums={};counts={}
     for row in rows[1:]:
         if len(row)<=label_index or not row[label_index].strip():continue
         features=[row[i].strip() for i in feature_indices];values=[float(v) for v in features]
         label=row[label_index].strip();parsed.append((features,label))
-        if float(label)>=0:sums[label]=sums.get(label,0.0)+values[1];counts[label]=counts.get(label,0)+1
-    # Match the C++ display-name convention (increasing mean feature 2). This
+        if float(label)>=0:sums[label]=sums.get(label,0.0)+values[0];counts[label]=counts.get(label,0)+1
+    # Match the C++ display-name convention (increasing mean frequency). This
     # changes names only; labels never enter A-BIRCH fitting or threshold selection.
     ordered=sorted(counts,key=lambda x:sums[x]/counts[x]);names={x:f"Emitter_{i+1}" for i,x in enumerate(ordered)}
     destination.mkdir(parents=True,exist_ok=True);features_file=destination/"features.csv";truth_file=destination/"truth.csv"
@@ -75,11 +97,29 @@ def prepare_combined(source:Path,destination:Path)->tuple[Path,Path]:
             truth="Noise" if float(label)<0 else names[label];fw.writerow(features);tw.writerow([*features,truth])
     return features_file,truth_file
 
+def prepare_two_emitter(source:Path,labeled:Path,destination:Path)->tuple[Path,Path]:
+    """Remove TOA and row number while preserving frequency, PW, azimuth and elevation."""
+    with source.open(newline="",encoding="utf-8-sig") as f: source_rows=list(csv.reader(f))
+    with labeled.open(newline="",encoding="utf-8-sig") as f: labeled_rows=list(csv.reader(f))
+    source_header=source_rows[0];truth_header=labeled_rows[0]
+    names=("Freq_MHz","PW_ns","Az_deg","El_deg")
+    source_indices=[source_header.index(name) for name in names]
+    truth_indices=[truth_header.index(name) for name in names]
+    label_index=truth_header.index("Ground_Truth")
+    destination.mkdir(parents=True,exist_ok=True)
+    feature_file=destination/"features.csv";truth_file=destination/"truth.csv"
+    with feature_file.open("w",newline="",encoding="utf-8") as ff,truth_file.open("w",newline="",encoding="utf-8") as tf:
+        fw,tw=csv.writer(ff),csv.writer(tf);fw.writerow(names);tw.writerow([*names,"Ground_Truth"])
+        for row in source_rows[1:]:fw.writerow([row[i] for i in source_indices])
+        for row in labeled_rows[1:]:tw.writerow([*[row[i] for i in truth_indices],row[label_index]])
+    return feature_file,truth_file
+
 def all_jobs(prepared:Path)->list[tuple[str,Path,Path]]:
     data=ROOT/"Datasets";jobs=[]
     for name in ("s1_5d","s2_5d","s5_5d","s6_5d"):
         features,truth=prepare_combined(data/f"{name}.csv",prepared/name);jobs.append((name,features,truth))
-    jobs.append(("two_emitter_pdw",data/"two_emitter_pdw_dataset.csv",data/"two_emitter_pdw_labeled.csv"));return jobs
+    features,truth=prepare_two_emitter(data/"two_emitter_pdw_dataset.csv",data/"two_emitter_pdw_labeled.csv",prepared/"two_emitter_pdw")
+    jobs.append(("two_emitter_pdw",features,truth));return jobs
 
 def read_analysis(predictions:Path,report:Path)->dict:
     with predictions.open(newline="",encoding="utf-8-sig") as f:rows=list(csv.DictReader(f))
@@ -159,7 +199,7 @@ def main()->int:
         for name,features,truth in jobs:
             folder=output/name;folder.mkdir(parents=True,exist_ok=True);predictions=folder/"birch_results.csv";report=folder/"birch_validation_report.txt"
             print(f"\n===== {name} =====",flush=True)
-            run([str(executable),str(features),str(truth),str(predictions),str(report),str(a.branching_factor),str(a.minimum_cluster_points),str(a.pilot_points),str(a.pilot_max_clusters),str(a.threshold)],IMPL)
+            run([str(executable),str(features),str(truth),str(predictions),str(report),str(a.branching_factor),str(a.minimum_cluster_points),str(a.pilot_points),str(a.pilot_max_clusters),str(a.threshold),str(a.mbd_spread),str(a.knn_k),str(a.knn_outlier_fraction)],IMPL)
             analysis=read_analysis(predictions,report);confusion_artifacts(folder,analysis);analyses.append((name,analysis))
             index.append([name,"analyzed",str(predictions),str(report)])
         with (output/"run_index.csv").open("w",newline="",encoding="utf-8") as f:csv.writer(f).writerows(index)

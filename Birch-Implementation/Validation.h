@@ -18,5 +18,7 @@ void writeMetrics(std::ostream& output, const std::vector<std::string>& truth,
 void saveResults(const std::string& filename, const Dataset& data, const std::vector<std::string>& predicted);
 void writeValidityIndices(std::ostream& output, const std::vector<Point>& normalizedPoints,
                           const std::vector<std::string>& predicted);
+std::vector<std::string> alignClusterNamesForEvaluation(
+    const std::vector<std::string>& truth, const std::vector<std::string>& predicted);
 
 #endif

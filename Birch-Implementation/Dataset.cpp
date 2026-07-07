@@ -6,6 +6,15 @@ void Dataset::loadFeatures(const std::string& filename)
     if(!input) throw std::runtime_error("Cannot open feature CSV: " + filename);
     std::string line;
     if(!std::getline(input, line)) throw std::runtime_error("Feature CSV is empty");
+    {
+        std::stringstream headerParser(line);
+        std::string name;
+        while(std::getline(headerParser, name, ','))
+        {
+            if(!name.empty() && name.back()=='\r') name.pop_back();
+            featureNames.push_back(name);
+        }
+    }
     size_t dimensions = 0;
     while(std::getline(input, line))
     {
@@ -22,6 +31,8 @@ void Dataset::loadFeatures(const std::string& filename)
         raw.push_back(std::move(point));
     }
     if(raw.empty()) throw std::runtime_error("Feature CSV contains no data rows");
+    if(featureNames.size()!=dimensions)
+        throw std::runtime_error("Feature header/data column-count mismatch");
 }
 
 void Dataset::normalize()

@@ -46,10 +46,12 @@ double CF::radius() const
 
 Node::Node(bool isLeaf) : leaf(isLeaf) {}
 
-CFTree::CFTree(double radiusThreshold, size_t factor)
-    : threshold(radiusThreshold), branchingFactor(factor), root(std::make_unique<Node>(true))
+CFTree::CFTree(double radiusThreshold, size_t factor, double multipleBranchSpread)
+    : threshold(radiusThreshold), mbdSpread(multipleBranchSpread), branchingFactor(factor),
+      root(std::make_unique<Node>(true))
 {
     if(threshold < 0.0) throw std::invalid_argument("BIRCH threshold cannot be negative");
+    if(mbdSpread < 0.0) throw std::invalid_argument("MBD-BIRCH spread cannot be negative");
     if(branchingFactor < 2) throw std::invalid_argument("Branching factor must be at least 2");
 }
 
@@ -147,6 +149,83 @@ std::unique_ptr<Node> CFTree::insertRecursive(Node& node, const Point& point)
     return node.entries.size() > branchingFactor ? split(node) : nullptr;
 }
 
+// Implements Equation (11) from the paper. At each internal node, MBD-BIRCH
+// explores the nearest child and every other child whose distance is less than
+// s farther away than the nearest child. The point is still inserted only once.
+void CFTree::collectMbdLeaves(Node& node, const Point& point,
+                              std::vector<Node*>& leaves) const
+{
+    if(node.leaf)
+    {
+        leaves.push_back(&node);
+        return;
+    }
+
+    std::vector<double> distances(node.entries.size());
+    double nearestDistance = std::numeric_limits<double>::infinity();
+    size_t nearestIndex = 0;
+    for(size_t i=0; i<node.entries.size(); ++i)
+    {
+        distances[i] = std::sqrt(distanceSquared(node.entries[i].centroid(), point));
+        if(distances[i] < nearestDistance)
+        {
+            nearestDistance = distances[i];
+            nearestIndex = i;
+        }
+    }
+    for(size_t i=0; i<node.children.size(); ++i)
+        if(i == nearestIndex || distances[i] - nearestDistance < mbdSpread)
+            collectMbdLeaves(*node.children[i], point, leaves);
+}
+
+// Inserts into a leaf selected during the MBD search and updates/splits every
+// node on that one root-to-leaf path. The boolean indicates that target was
+// found below this node; sibling carries an overflow split back to the parent.
+bool CFTree::insertIntoLeaf(Node& node, Node* target, const Point& point,
+                            std::unique_ptr<Node>& sibling)
+{
+    if(node.leaf)
+    {
+        if(&node != target) return false;
+        if(node.entries.empty())
+        {
+            CF entry(point.size());
+            entry.add(point);
+            node.entries.push_back(std::move(entry));
+        }
+        else
+        {
+            const size_t index = closest(node.entries, point);
+            CF candidate = node.entries[index];
+            candidate.add(point);
+            if(candidate.radius() <= threshold) node.entries[index] = std::move(candidate);
+            else
+            {
+                CF entry(point.size());
+                entry.add(point);
+                node.entries.push_back(std::move(entry));
+            }
+        }
+        if(node.entries.size() > branchingFactor) sibling = split(node);
+        return true;
+    }
+
+    for(size_t i=0; i<node.children.size(); ++i)
+    {
+        std::unique_ptr<Node> childSibling;
+        if(!insertIntoLeaf(*node.children[i], target, point, childSibling)) continue;
+        node.entries[i] = summary(*node.children[i]);
+        if(childSibling)
+        {
+            node.entries.push_back(summary(*childSibling));
+            node.children.push_back(std::move(childSibling));
+        }
+        if(node.entries.size() > branchingFactor) sibling = split(node);
+        return true;
+    }
+    return false;
+}
+
 void CFTree::collect(const Node& node, std::vector<CF>& result)
 {
     if(node.leaf)
@@ -159,7 +238,27 @@ void CFTree::collect(const Node& node, std::vector<CF>& result)
  
 void CFTree::insert(const Point& point)
 {
-    std::unique_ptr<Node> sibling = insertRecursive(*root, point);
+    std::unique_ptr<Node> sibling;
+    if(mbdSpread == 0.0 || root->leaf)
+        sibling = insertRecursive(*root, point);
+    else
+    {
+        std::vector<Node*> candidateLeaves;
+        collectMbdLeaves(*root, point, candidateLeaves);
+        if(candidateLeaves.empty()) throw std::logic_error("MBD-BIRCH found no candidate leaf");
+
+        Node* bestLeaf = candidateLeaves.front();
+        double bestDistance = bestLeaf->entries.empty()
+            ? 0.0 : distanceSquared(bestLeaf->entries[closest(bestLeaf->entries, point)].centroid(), point);
+        for(Node* leaf : candidateLeaves)
+        {
+            const double current = leaf->entries.empty()
+                ? 0.0 : distanceSquared(leaf->entries[closest(leaf->entries, point)].centroid(), point);
+            if(current < bestDistance) { bestDistance = current; bestLeaf = leaf; }
+        }
+        if(!insertIntoLeaf(*root, bestLeaf, point, sibling))
+            throw std::logic_error("MBD-BIRCH candidate leaf disappeared");
+    }
     if(sibling)
     {
         auto newRoot = std::make_unique<Node>(false);
@@ -365,7 +464,8 @@ std::vector<std::string> emitterNames(const std::vector<Point>& raw, const std::
     for(size_t i=0; i<labels.size(); ++i)
         if(labels[i] >= 0 && static_cast<size_t>(labels[i]) < clusterCount)
         {
-            frequencySum[labels[i]] += raw[i][1];
+            // Prepared datasets place frequency in the first retained column.
+            frequencySum[labels[i]] += raw[i][0];
             ++count[labels[i]];
         }
     std::vector<size_t> order(clusterCount);

@@ -1,0 +1,70 @@
+A-BIRCH / TREE-BIRCH VALIDATION REPORT
+=====================================
+
+No LOF and no global k-means phase were used.
+
+DISTANCE-BASED kNN OUTLIER PREPROCESSING
+k=3 Outlier fraction=0.1
+k-distance cutoff=0.0780789
+Preprocessing outliers removed=3200
+Points retained for BIRCH=28800
+
+MBD-BIRCH multiple-branch spread s=0.05
+MBD-BIRCH enabled=YES
+
+Monotonic leading sequence/TOA excluded from distance: NO
+
+AUTOMATIC THRESHOLD ESTIMATION
+Pilot clusters (Gap Statistic)=2
+Rmax=0.312321 Dmin=1.14736 wrmax=1.01613
+Formula threshold=0.488649 Applied threshold=0.488649
+Condition 6*Rmax <= Dmin: WARNING
+Weight-ratio condition: WARNING
+
+TREE RESULTS
+Branching factor=3 Minimum cluster points=5
+Leaf CFs=2
+Automatically estimated clusters (Gap Statistic)=2
+Final detected BIRCH clusters=2
+Retained clusters=2 Noise rows from small CFs=3200 CF weight=28800
+
+DETECTED CLUSTER POPULATIONS
+Internal cluster 0=14935 rows
+Internal cluster 1=13865 rows
+Noise=3200 rows
+Total assigned=32000 rows
+
+TREE-BIRCH SMALL-CF NOISE DETECTION
+TP=3151 FP=49 FN=3224 TN=25576
+Precision=0.984688 Recall=0.494275 F1=0.658172
+
+BIRCH EMITTER CLUSTERING
+Accuracy=0.81319 (20838/25625)
+Emitter_1 Precision=0 Recall=0 F1=0
+Emitter_2 Precision=0.642469 Recall=0.998124 F1=0.781746
+Emitter_3 Precision=1 Recall=0.998299 F1=0.999149
+
+COMBINED PIPELINE
+Accuracy=0.749656 (23989/32000)
+Emitter_1 Precision=0 Recall=0 F1=0
+Emitter_2 Precision=0.57007 Recall=0.998124 F1=0.725677
+Emitter_3 Precision=0.888857 Recall=0.998299 F1=0.940404
+Noise Precision=0.984688 Recall=0.494275 F1=0.658172
+
+CONFUSION MATRIX (rows=true, columns=predicted)
+true/predicted,Emitter_1,Emitter_2,Emitter_3,Noise
+Emitter_1,0,4738,0,12
+Emitter_2,0,8514,0,16
+Emitter_3,0,0,12324,21
+Noise,0,1683,1541,3151
+Adjusted Rand Index=0.599358
+
+INTERNAL CLUSTER VALIDITY INDICES
+Predicted Noise rows excluded. Lower DB and SD values are preferred.
+Points evaluated=28800
+Clusters evaluated=2
+Davies-Bouldin index=0.502134
+SD Scat=0.263766
+SD Dis=1.742555
+SD Alpha=1.742555
+SD index=2.202182
