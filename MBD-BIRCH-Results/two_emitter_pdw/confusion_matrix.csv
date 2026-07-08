@@ -1,4 +1,4 @@
-true/predicted,Emitter_1,Emitter_2,Noise
+Actual / Predicted,Emitter_1,Emitter_2,Noise
 Emitter_1,956,0,44
 Emitter_2,0,754,46
 Noise,0,0,100

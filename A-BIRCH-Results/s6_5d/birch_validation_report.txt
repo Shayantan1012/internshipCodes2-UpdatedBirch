@@ -51,8 +51,8 @@ Emitter_2 Precision=0.57007 Recall=0.998124 F1=0.725677
 Emitter_3 Precision=0.888857 Recall=0.998299 F1=0.940404
 Noise Precision=0.984688 Recall=0.494275 F1=0.658172
 
-CONFUSION MATRIX (rows=true, columns=predicted)
-true/predicted,Emitter_1,Emitter_2,Emitter_3,Noise
+CONFUSION MATRIX (rows=Actual, columns=Predicted)
+Actual/Predicted,Emitter_1,Emitter_2,Emitter_3,Noise
 Emitter_1,0,4738,0,12
 Emitter_2,0,8514,0,16
 Emitter_3,0,0,12324,21

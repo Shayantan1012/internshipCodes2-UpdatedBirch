@@ -98,7 +98,7 @@ void writeMetrics(std::ostream& output, const std::vector<std::string>& truth,
         if(std::find(emitterNames.begin(), emitterNames.end(), name) == emitterNames.end())
             emitterNames.push_back(name);
 
-    output << "\nCONFUSION MATRIX (rows=true, columns=predicted)\ntrue/predicted";
+    output << "\nCONFUSION MATRIX (rows=Actual, columns=Predicted)\nActual/Predicted";
     for(const std::string& name : emitterNames) output << ',' << name;
     output << '\n';
     std::vector<std::vector<size_t>> matrix(emitterNames.size(),

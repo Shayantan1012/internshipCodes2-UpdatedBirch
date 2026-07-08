@@ -146,9 +146,9 @@ def read_analysis(predictions:Path,report:Path)->dict:
 def confusion_artifacts(folder:Path,data:dict)->None:
     labels,matrix=data["labels"],data["matrix"]
     with (folder/"confusion_matrix.csv").open("w",newline="",encoding="utf-8") as f:
-        writer=csv.writer(f);writer.writerow(["true/predicted",*labels]);writer.writerows([[labels[i],*row] for i,row in enumerate(matrix)])
-    cell=72;left=145;top=75;width=left+cell*len(labels)+20;height=top+cell*len(labels)+65;maximum=max(1,max(max(r) for r in matrix))
-    parts=[f"<svg xmlns='http://www.w3.org/2000/svg' width='{width}' height='{height}'>","<rect width='100%' height='100%' fill='white'/>",f"<text x='{width/2}' y='25' text-anchor='middle' font-family='sans-serif' font-size='19'>Confusion matrix</text>"]
+        writer=csv.writer(f);writer.writerow(["Actual / Predicted",*labels]);writer.writerows([[labels[i],*row] for i,row in enumerate(matrix)])
+    cell=72;left=175;top=75;width=left+cell*len(labels)+20;height=top+cell*len(labels)+90;maximum=max(1,max(max(r) for r in matrix))
+    parts=[f"<svg xmlns='http://www.w3.org/2000/svg' width='{width}' height='{height}'>","<rect width='100%' height='100%' fill='white'/>",f"<text x='{width/2}' y='25' text-anchor='middle' font-family='sans-serif' font-size='19'>Confusion matrix</text>",f"<text x='{left+cell*len(labels)/2}' y='{height-12}' text-anchor='middle' font-family='sans-serif' font-size='15' font-weight='bold'>Predicted class (columns)</text>",f"<text x='22' y='{top+cell*len(labels)/2}' text-anchor='middle' font-family='sans-serif' font-size='15' font-weight='bold' transform='rotate(-90 22 {top+cell*len(labels)/2})'>Actual class (rows)</text>"]
     for i,label in enumerate(labels):
         safe=html.escape(label);parts.append(f"<text x='{left-8}' y='{top+i*cell+42}' text-anchor='end' font-family='sans-serif' font-size='11'>{safe}</text>")
         parts.append(f"<text x='{left+i*cell+cell/2}' y='{top+len(labels)*cell+22}' text-anchor='middle' font-family='sans-serif' font-size='10' transform='rotate(25 {left+i*cell+cell/2} {top+len(labels)*cell+22})'>{safe}</text>")

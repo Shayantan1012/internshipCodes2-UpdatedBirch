@@ -95,7 +95,7 @@ std::unique_ptr<Node> CFTree::split(Node& node)
                 seed2 = j;
             }
         }
-
+        
     std::vector<CF> oldEntries = std::move(node.entries);
     std::vector<std::unique_ptr<Node>> oldChildren = std::move(node.children);
     auto sibling = std::make_unique<Node>(node.leaf);
