@@ -9,9 +9,6 @@ k-distance cutoff=0.0743559
 Preprocessing outliers removed=3200
 Points retained for BIRCH=28800
 
-MBD-BIRCH multiple-branch spread s=0.05
-MBD-BIRCH enabled=YES
-
 Monotonic leading sequence/TOA excluded from distance: NO
 
 AUTOMATIC THRESHOLD ESTIMATION
@@ -68,3 +65,6 @@ SD Scat=0.266997
 SD Dis=1.598185
 SD Alpha=1.598185
 SD index=2.024896
+
+FEATURE SET USED FOR CLUSTERING
+Frequency + Pulse Width + Azimuth + Elevation

@@ -9,8 +9,7 @@ int runPipeline(const std::string& featureFile, const std::string& truthFile,
                 const std::string& resultFile, const std::string& reportFile,
                 size_t branchingFactor, size_t minimumClusterPoints,
                 size_t pilotPoints, size_t maximumPilotClusters,
-                double thresholdOverride, double mbdSpread,
-                size_t knnK, double knnOutlierFraction)
+                double thresholdOverride, size_t knnK, double knnOutlierFraction)
 {
     // ========================================================================
     // STAGE 0: Validate user-supplied configuration
@@ -41,7 +40,7 @@ int runPipeline(const std::string& featureFile, const std::string& truthFile,
     // Following Dang, Ngan and Liu, each point receives the distance to its
     // k-th nearest neighbor. The largest m distances are marked as outliers,
     // where m is configured here as a fraction of the dataset. Labels are not
-    // used. Only the retained points proceed to A-BIRCH/MBD-BIRCH.
+    // used. Only the retained points proceed to A-BIRCH.
     const KNNOutlierResult knn=detectKNNOutliers(data.normalized,knnK,knnOutlierFraction);
     std::vector<Point> cleanPoints;
     std::vector<size_t> cleanIndices;
@@ -73,7 +72,7 @@ int runPipeline(const std::string& featureFile, const std::string& truthFile,
     // sufficient statistics (N, LS, SS). Points are absorbed only when the
     // resulting radius stays below threshold; overflowing nodes split.
     // This is tree-BIRCH only: there is no LOF and no global k-means phase.
-    CFTree tree(threshold, branchingFactor, mbdSpread);
+    CFTree tree(threshold, branchingFactor);
     for(const Point& point : cleanPoints) tree.insert(point);
 
     // Collect the final leaf-level micro-clusters produced by the CF tree.
@@ -135,8 +134,6 @@ int runPipeline(const std::string& featureFile, const std::string& truthFile,
            << "\nk-distance cutoff=" << knn.cutoff
            << "\nPreprocessing outliers removed=" << knn.count
            << "\nPoints retained for BIRCH=" << cleanPoints.size() << "\n\n"
-           << "MBD-BIRCH multiple-branch spread s=" << mbdSpread << "\n"
-           << "MBD-BIRCH enabled=" << (mbdSpread>0.0?"YES":"NO") << "\n\n"
            << "Monotonic leading sequence/TOA excluded from distance: "
            << (data.ignoredLeadingSequence?"YES":"NO") << "\n\n"
            << "AUTOMATIC THRESHOLD ESTIMATION\n"

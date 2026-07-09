@@ -1,0 +1,71 @@
+A-BIRCH / TREE-BIRCH VALIDATION REPORT
+=====================================
+
+No LOF and no global k-means phase were used.
+
+DISTANCE-BASED kNN OUTLIER PREPROCESSING
+k=3 Outlier fraction=0.1
+k-distance cutoff=0.0318033
+Preprocessing outliers removed=3200
+Points retained for BIRCH=28800
+
+Monotonic leading sequence/TOA excluded from distance: NO
+
+AUTOMATIC THRESHOLD ESTIMATION
+Pilot clusters (Gap Statistic)=6
+Rmax=0.164538 Dmin=0.321133 wrmax=2.88372
+Formula threshold=0.191486 Applied threshold=0.191486
+Condition 6*Rmax <= Dmin: WARNING
+Weight-ratio condition: WARNING
+
+TREE RESULTS
+Branching factor=32 Minimum cluster points=5
+Leaf CFs=6
+Automatically estimated clusters (Gap Statistic)=6
+Final detected BIRCH clusters=6
+Retained clusters=6 Noise rows from small CFs=3200 CF weight=28800
+
+DETECTED CLUSTER POPULATIONS
+Internal cluster 0=7582 rows
+Internal cluster 1=6245 rows
+Internal cluster 2=4422 rows
+Internal cluster 3=4362 rows
+Internal cluster 4=3635 rows
+Internal cluster 5=2554 rows
+Noise=3200 rows
+Total assigned=32000 rows
+
+TREE-BIRCH SMALL-CF NOISE DETECTION
+TP=2433 FP=767 FN=2154 TN=26646
+Precision=0.760312 Recall=0.530412 F1=0.624888
+
+BIRCH EMITTER CLUSTERING
+Accuracy=0.971984 (26645/27413)
+Emitter_1 Precision=0.999844 Recall=0.967109 F1=0.983204
+Emitter_2 Precision=1 Recall=0.973539 F1=0.986592
+
+COMBINED PIPELINE
+Accuracy=0.908687 (29078/32000)
+Emitter_1 Precision=0.926836 Recall=0.967109 F1=0.946545
+Emitter_2 Precision=0.924648 Recall=0.973539 F1=0.948464
+Noise Precision=0.760312 Recall=0.530412 F1=0.624888
+
+CONFUSION MATRIX (rows=Actual, columns=Predicted)
+Actual/Predicted,Emitter_1,Emitter_2,Noise
+Emitter_1,6410,0,218
+Emitter_2,1,20235,549
+Noise,505,1649,2433
+Adjusted Rand Index=0.776883
+
+INTERNAL CLUSTER VALIDITY INDICES
+Predicted Noise rows excluded. Lower DB and SD values are preferred.
+Points evaluated=28800
+Clusters evaluated=2
+Davies-Bouldin index=0.757257
+SD Scat=0.582995
+SD Dis=2.731682
+SD Alpha=2.731682
+SD index=4.324240
+
+FEATURE SET USED FOR CLUSTERING
+Frequency + Azimuth + Elevation

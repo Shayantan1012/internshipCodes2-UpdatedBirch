@@ -1,5 +1,7 @@
 # A-BIRCH analysis report
 
+Feature set used for clustering: **Frequency + Pulse Width + Azimuth + Elevation**.
+
 Every dataset was fitted independently using A-BIRCH. Ground truth was used only after clustering for validation.
 
 | Dataset | Rows | Threshold | Leaf CFs | Gap estimate | Final detected clusters | BIRCH noise | Signal accuracy | Overall accuracy | ARI | Paper conditions |

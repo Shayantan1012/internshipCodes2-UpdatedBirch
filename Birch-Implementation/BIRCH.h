@@ -39,7 +39,6 @@ struct ABirchEstimate
 class CFTree
 {
     double threshold;
-    double mbdSpread;
     size_t branchingFactor;
     std::unique_ptr<Node> root;
 
@@ -47,13 +46,10 @@ class CFTree
     static size_t closest(const std::vector<CF>& entries, const Point& point);
     std::unique_ptr<Node> split(Node& node);
     std::unique_ptr<Node> insertRecursive(Node& node, const Point& point);
-    void collectMbdLeaves(Node& node, const Point& point, std::vector<Node*>& leaves) const;
-    bool insertIntoLeaf(Node& node, Node* target, const Point& point,
-                        std::unique_ptr<Node>& sibling);
     static void collect(const Node& node, std::vector<CF>& result);
 
 public:
-    CFTree(double radiusThreshold, size_t factor, double multipleBranchSpread = 0.0);
+    CFTree(double radiusThreshold, size_t factor);
     void insert(const Point& point);
     std::vector<CF> leafEntries() const;
 };

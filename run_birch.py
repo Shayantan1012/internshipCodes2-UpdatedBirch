@@ -38,6 +38,11 @@ def arguments() -> argparse.Namespace:
     )
     parser.add_argument("--truth", type=Path, help="Ground-truth CSV paired with --features.")
     parser.add_argument("--output-dir", type=Path, default=ROOT / "A-BIRCH-Results")
+    parser.add_argument(
+        "--without-pw",
+        action="store_true",
+        help="Use only frequency, azimuth and elevation; pulse width is excluded.",
+    )
     parser.add_argument("--branching-factor", type=int, default=32)
     parser.add_argument("--minimum-cluster-points", type=int, default=5)
     parser.add_argument("--pilot-points", type=int, default=1000)
@@ -47,12 +52,6 @@ def arguments() -> argparse.Namespace:
         type=float,
         default=-1.0,
         help="Negative selects the paper's automatic threshold.",
-    )
-    parser.add_argument(
-        "--mbd-spread",
-        type=float,
-        default=0.05,
-        help="MBD-BIRCH multiple-branch distance allowance s; use 0 for ordinary tree-BIRCH.",
     )
     parser.add_argument("--knn-k",type=int,default=3,
                         help="Neighbor rank used by distance-based kNN outlier detection.")
@@ -64,22 +63,33 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--build-only", action="store_true")
     return parser.parse_args()
 
-def prepare_combined(source:Path,destination:Path)->tuple[Path,Path]:
-    with source.open(newline="",encoding="utf-8-sig") as f: rows=list(csv.reader(f))
-    if not rows or "Emitter" not in rows[0]: raise ValueError(f"Missing Emitter column: {source}")
-    header=rows[0];label_index=header.index("Emitter")
-    wanted = {
+def feature_selection(without_pw: bool) -> tuple[set[str], str]:
+    if without_pw:
+        return ({
+            "radio frequency", "frequency", "freq_mhz",
+            "azimuth", "az", "az_deg",
+            "angle of elevation", "elevation", "el", "el_deg",
+        }, "Frequency + Azimuth + Elevation")
+    return ({
         "radio frequency", "frequency", "freq_mhz",
         "pulse width", "pw", "pw_ns",
         "azimuth", "az", "az_deg",
         "angle of elevation", "elevation", "el", "el_deg",
-    }
+    }, "Frequency + Pulse Width + Azimuth + Elevation")
+
+def prepare_combined(source:Path,destination:Path,without_pw:bool=False)->tuple[Path,Path]:
+    with source.open(newline="",encoding="utf-8-sig") as f: rows=list(csv.reader(f))
+    if not rows or "Emitter" not in rows[0]: raise ValueError(f"Missing Emitter column: {source}")
+    header=rows[0];label_index=header.index("Emitter")
+    wanted, _ = feature_selection(without_pw)
     feature_indices = [
         i for i, name in enumerate(header[:label_index])
         if name.strip().lower() in wanted
     ]
-    if len(feature_indices) != 4:
-        raise ValueError(f"Expected frequency, PW, azimuth and elevation in {source}")
+    expected = 3 if without_pw else 4
+    if len(feature_indices) != expected:
+        feature_text = "frequency, azimuth and elevation" if without_pw else "frequency, PW, azimuth and elevation"
+        raise ValueError(f"Expected {feature_text} in {source}")
     parsed=[];sums={};counts={}
     for row in rows[1:]:
         if len(row)<=label_index or not row[label_index].strip():continue
@@ -97,12 +107,12 @@ def prepare_combined(source:Path,destination:Path)->tuple[Path,Path]:
             truth="Noise" if float(label)<0 else names[label];fw.writerow(features);tw.writerow([*features,truth])
     return features_file,truth_file
 
-def prepare_two_emitter(source:Path,labeled:Path,destination:Path)->tuple[Path,Path]:
-    """Remove TOA and row number while preserving frequency, PW, azimuth and elevation."""
+def prepare_two_emitter(source:Path,labeled:Path,destination:Path,without_pw:bool=False)->tuple[Path,Path]:
+    """Remove TOA and row number while preserving the selected clustering features."""
     with source.open(newline="",encoding="utf-8-sig") as f: source_rows=list(csv.reader(f))
     with labeled.open(newline="",encoding="utf-8-sig") as f: labeled_rows=list(csv.reader(f))
     source_header=source_rows[0];truth_header=labeled_rows[0]
-    names=("Freq_MHz","PW_ns","Az_deg","El_deg")
+    names=("Freq_MHz","Az_deg","El_deg") if without_pw else ("Freq_MHz","PW_ns","Az_deg","El_deg")
     source_indices=[source_header.index(name) for name in names]
     truth_indices=[truth_header.index(name) for name in names]
     label_index=truth_header.index("Ground_Truth")
@@ -114,11 +124,11 @@ def prepare_two_emitter(source:Path,labeled:Path,destination:Path)->tuple[Path,P
         for row in labeled_rows[1:]:tw.writerow([*[row[i] for i in truth_indices],row[label_index]])
     return feature_file,truth_file
 
-def all_jobs(prepared:Path)->list[tuple[str,Path,Path]]:
+def all_jobs(prepared:Path,without_pw:bool=False)->list[tuple[str,Path,Path]]:
     data=ROOT/"Datasets";jobs=[]
     for name in ("s1_5d","s2_5d","s5_5d","s6_5d"):
-        features,truth=prepare_combined(data/f"{name}.csv",prepared/name);jobs.append((name,features,truth))
-    features,truth=prepare_two_emitter(data/"two_emitter_pdw_dataset.csv",data/"two_emitter_pdw_labeled.csv",prepared/"two_emitter_pdw")
+        features,truth=prepare_combined(data/f"{name}.csv",prepared/name,without_pw);jobs.append((name,features,truth))
+    features,truth=prepare_two_emitter(data/"two_emitter_pdw_dataset.csv",data/"two_emitter_pdw_labeled.csv",prepared/"two_emitter_pdw",without_pw)
     jobs.append(("two_emitter_pdw",features,truth));return jobs
 
 def read_analysis(predictions:Path,report:Path)->dict:
@@ -173,11 +183,11 @@ def bar_svg(path:Path,names:list[str],values:list[float],title:str,integer:bool=
         p.append(f"<rect x='{x}' y='{bottom-h}' width='{step*.76}' height='{h}' fill='{colors[i%len(colors)]}'/><text x='{x+step*.38}' y='{bottom-h-8}' text-anchor='middle' font-family='sans-serif' font-size='11'>{label}</text><text x='{x+step*.38}' y='{bottom+20}' text-anchor='middle' font-family='sans-serif' font-size='11'>{html.escape(name)}</text>")
     p.append("</svg>");path.write_text("".join(p),encoding="utf-8")
 
-def aggregate_report(output:Path,analyses:list[tuple[str,dict]])->None:
+def aggregate_report(output:Path,analyses:list[tuple[str,dict]],feature_text:str)->None:
     names=[name for name,_ in analyses];bar_svg(output/"accuracy_comparison.svg",names,[d["signal_accuracy"] for _,d in analyses],"Signal clustering accuracy")
     bar_svg(output/"ari_comparison.svg",names,[d["ari"] for _,d in analyses],"Adjusted Rand Index")
     bar_svg(output/"threshold_comparison.svg",names,[d["threshold"] for _,d in analyses],"Automatic A-BIRCH thresholds")
-    lines=["# A-BIRCH analysis report","","Every dataset was fitted independently using A-BIRCH. Ground truth was used only after clustering for validation.","","| Dataset | Rows | Threshold | Leaf CFs | Gap estimate | Final detected clusters | BIRCH noise | Signal accuracy | Overall accuracy | ARI | Paper conditions |","|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|"]
+    lines=["# A-BIRCH analysis report","",f"Feature set used for clustering: **{feature_text}**.","","Every dataset was fitted independently using A-BIRCH. Ground truth was used only after clustering for validation.","","| Dataset | Rows | Threshold | Leaf CFs | Gap estimate | Final detected clusters | BIRCH noise | Signal accuracy | Overall accuracy | ARI | Paper conditions |","|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|"]
     for name,d in analyses:lines.append(f"| {name} | {d['rows']} | {d['threshold']:.6f} | {d['leaf_cfs']} | {d['estimated_clusters']} | **{d['clusters']}** | {d['noise']} | {d['signal_accuracy']:.4f} | {d['overall_accuracy']:.4f} | {d['ari']:.4f} | separation: {d['separation']}; weight: {d['weight']} |")
     lines += ["","## Graphs","","![Signal accuracy](accuracy_comparison.svg)","","![Adjusted Rand Index](ari_comparison.svg)","","![Automatic thresholds](threshold_comparison.svg)","","## Interpretation","","- `s2_5d`, `s5_5d`, and the two-emitter dataset separate their signal emitters very accurately.","- `s1_5d` and `s6_5d` are under-clustered by pure tree-BIRCH: distinct labeled emitters merge geometrically.","- Noise detection is strongest for `s2_5d`; in the other datasets, the automatic radius absorbs noise into signal CFs.","- All paper-condition warnings are retained because the radar data is five-dimensional and not guaranteed to be isotropic Gaussian data.","","Each dataset folder contains `birch_results.csv`, `birch_validation_report.txt`, `confusion_matrix.csv`, `confusion_matrix.svg`, and `cluster_sizes.svg`."]
     (output/"ANALYSIS_REPORT.md").write_text("\n".join(lines)+"\n",encoding="utf-8")
@@ -194,16 +204,23 @@ def main()->int:
         if not a.skip_tests:run([str(executable),"--self-test"],IMPL)
         if a.build_only:print(f"Build completed: {executable}");return 0
         if (a.features is None)!=(a.truth is None):raise ValueError("--features and --truth must be supplied together")
-        jobs=[(a.features.stem,a.features.resolve(),a.truth.resolve())] if a.features else all_jobs(build/"prepared")
+        if a.without_pw and a.output_dir == ROOT / "A-BIRCH-Results":
+            a.output_dir = ROOT / "A-BIRCH-Results-Without-PW"
+        _, feature_text = feature_selection(a.without_pw)
+        prepared_root = build / ("prepared_without_pw" if a.without_pw else "prepared")
+        jobs=[(a.features.stem,a.features.resolve(),a.truth.resolve())] if a.features else all_jobs(prepared_root,a.without_pw)
         output=a.output_dir.resolve();output.mkdir(parents=True,exist_ok=True);index=[["dataset","status","predictions","report"]];analyses=[]
+        (output/"FEATURE_SET.txt").write_text(feature_text+"\n",encoding="utf-8")
         for name,features,truth in jobs:
             folder=output/name;folder.mkdir(parents=True,exist_ok=True);predictions=folder/"birch_results.csv";report=folder/"birch_validation_report.txt"
             print(f"\n===== {name} =====",flush=True)
-            run([str(executable),str(features),str(truth),str(predictions),str(report),str(a.branching_factor),str(a.minimum_cluster_points),str(a.pilot_points),str(a.pilot_max_clusters),str(a.threshold),str(a.mbd_spread),str(a.knn_k),str(a.knn_outlier_fraction)],IMPL)
+            run([str(executable),str(features),str(truth),str(predictions),str(report),str(a.branching_factor),str(a.minimum_cluster_points),str(a.pilot_points),str(a.pilot_max_clusters),str(a.threshold),str(a.knn_k),str(a.knn_outlier_fraction)],IMPL)
+            with report.open("a",encoding="utf-8") as report_file:
+                report_file.write(f"\nFEATURE SET USED FOR CLUSTERING\n{feature_text}\n")
             analysis=read_analysis(predictions,report);confusion_artifacts(folder,analysis);analyses.append((name,analysis))
             index.append([name,"analyzed",str(predictions),str(report)])
         with (output/"run_index.csv").open("w",newline="",encoding="utf-8") as f:csv.writer(f).writerows(index)
-        aggregate_report(output,analyses)
+        aggregate_report(output,analyses,feature_text)
         print(f"\nAnalyzed {len(jobs)} datasets. Results: {output}");return 0
     except (subprocess.CalledProcessError,OSError,ValueError) as e:
         print(f"Error: {e}",file=sys.stderr);return e.returncode if isinstance(e,subprocess.CalledProcessError) else 1

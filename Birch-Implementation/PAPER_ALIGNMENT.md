@@ -10,6 +10,6 @@ The code implements the paper's A-BIRCH direction:
 - Tree-BIRCH output without a required cluster-count parameter.
 - No final global clustering phase.
 - No LOF or other external outlier detector.
-- MBD-BIRCH multiple-branch descent using Equation (11): all children within `s` of the nearest-child distance are searched, while each point is inserted only once.
+- Standard tree-BIRCH insertion: each point descends through the nearest child at each internal node.
 
 The paper targets two-dimensional isotropic Gaussian clusters. The supplied radar datasets are five-dimensional and need not satisfy that assumption, so the generated condition warnings are important rather than cosmetic. Small or surplus CF entries beyond the Gap-Statistic pilot cluster estimate are labeled as noise; this is an engineering reporting rule, not LOF or global clustering.

@@ -1,0 +1,72 @@
+A-BIRCH / TREE-BIRCH VALIDATION REPORT
+=====================================
+
+No LOF and no global k-means phase were used.
+
+DISTANCE-BASED kNN OUTLIER PREPROCESSING
+k=3 Outlier fraction=0.1
+k-distance cutoff=0.0328863
+Preprocessing outliers removed=3200
+Points retained for BIRCH=28800
+
+Monotonic leading sequence/TOA excluded from distance: NO
+
+AUTOMATIC THRESHOLD ESTIMATION
+Pilot clusters (Gap Statistic)=4
+Rmax=0.1631 Dmin=0.493575 wrmax=1.77222
+Formula threshold=0.228573 Applied threshold=0.228573
+Condition 6*Rmax <= Dmin: WARNING
+Weight-ratio condition: WARNING
+
+TREE RESULTS
+Branching factor=32 Minimum cluster points=5
+Leaf CFs=10
+Automatically estimated clusters (Gap Statistic)=4
+Final detected BIRCH clusters=4
+Retained clusters=4 Noise rows from small CFs=9095 CF weight=28800
+
+DETECTED CLUSTER POPULATIONS
+Internal cluster 0=7882 rows
+Internal cluster 1=6283 rows
+Internal cluster 2=4918 rows
+Internal cluster 3=3822 rows
+Noise=9095 rows
+Total assigned=32000 rows
+
+TREE-BIRCH SMALL-CF NOISE DETECTION
+TP=3298 FP=5797 FN=470 TN=22435
+Precision=0.362617 Recall=0.875265 F1=0.512789
+
+BIRCH EMITTER CLUSTERING
+Accuracy=0.65996 (18632/28232)
+Emitter_1 Precision=0 Recall=0 F1=0
+Emitter_2 Precision=1 Recall=0.776895 F1=0.874441
+Emitter_3 Precision=0.668728 Recall=0.814882 F1=0.734606
+
+COMBINED PIPELINE
+Accuracy=0.685312 (21930/32000)
+Emitter_1 Precision=0 Recall=0 F1=0
+Emitter_2 Precision=0.978038 Recall=0.776895 F1=0.865939
+Emitter_3 Precision=0.65593 Recall=0.814882 F1=0.726817
+Noise Precision=0.362617 Recall=0.875265 F1=0.512789
+
+CONFUSION MATRIX (rows=Actual, columns=Predicted)
+Actual/Predicted,Emitter_1,Emitter_2,Emitter_3,Noise
+Emitter_1,0,0,3803,907
+Emitter_2,0,10955,0,3146
+Emitter_3,0,0,7677,1744
+Noise,0,246,224,3298
+Adjusted Rand Index=0.483429
+
+INTERNAL CLUSTER VALIDITY INDICES
+Predicted Noise rows excluded. Lower DB and SD values are preferred.
+Points evaluated=22905
+Clusters evaluated=2
+Davies-Bouldin index=0.585015
+SD Scat=0.430995
+SD Dis=2.153292
+SD Alpha=2.153292
+SD index=3.081349
+
+FEATURE SET USED FOR CLUSTERING
+Frequency + Azimuth + Elevation

@@ -1,6 +1,6 @@
 # A-BIRCH: BIRCH-only implementation
 
-This implementation combines the distance-based kNN outlier method of Dang, Ngan and Liu with A-BIRCH threshold estimation and MBD-BIRCH multiple-branch descent. It contains no LOF preprocessing and no final global k-means phase.
+This implementation combines the distance-based kNN outlier method of Dang, Ngan and Liu with A-BIRCH threshold estimation. It contains no LOF preprocessing, no MBD-BIRCH multiple-branch descent, and no final global k-means phase.
 
 Pipeline:
 
@@ -14,8 +14,7 @@ Pipeline:
 
    `T = Dmin / (0.3 * wrmax + 4.5) + 0.8 * Rmax`
 
-7. Build the recursive CF tree using `(N, LS, SS)`, radius-constrained absorption, farthest-pair splits and root growth.
-   At every internal node, MBD-BIRCH also explores children satisfying `d(child,p)-d(nearest,p) < s`, then inserts the point once into the best candidate leaf.
+7. Build the recursive CF tree using `(N, LS, SS)`, nearest-child descent, radius-constrained absorption, farthest-pair splits and root growth.
 8. Use leaf CFs directly as tree-BIRCH clusters. Small CFs are also reported as noise.
 9. Validate only after clustering.
 
@@ -34,7 +33,7 @@ sudo apt install build-essential python3
 python3 run_birch.py
 ```
 
-Use `python3 run_birch.py --help` for threshold override, MBD spread `s`, pilot sample size, branching factor, and minimum cluster size. Set `--mbd-spread 0` to recover ordinary tree-BIRCH descent.
+Use `python3 run_birch.py --help` for threshold override, pilot sample size, branching factor, and minimum cluster size.
 
 ## Direct build
 

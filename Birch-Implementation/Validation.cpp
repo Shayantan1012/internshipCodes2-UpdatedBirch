@@ -304,15 +304,6 @@ void runSelfTests()
         [](size_t total, const CF& entry) { return total + entry.n; });
     if(weight != 100 || entries.size() < 2) throw std::logic_error("Recursive CF-tree test failed");
 
-    CFTree mbdTree(0.05, 3, 0.10);
-    for(int i=0; i<100; ++i)
-        mbdTree.insert({i < 50 ? i*0.0001 : 1.0+i*0.0001, 0.0});
-    const std::vector<CF> mbdEntries=mbdTree.leafEntries();
-    const size_t mbdWeight=std::accumulate(mbdEntries.begin(),mbdEntries.end(),size_t{0},
-        [](size_t total,const CF& entry){return total+entry.n;});
-    if(mbdWeight!=100 || mbdEntries.size()<2)
-        throw std::logic_error("MBD-BIRCH multiple-branch test failed");
-
     const std::vector<Point> pilot{{0,0},{0.01,0},{0,0.01},{1,1},{1.01,1},{1,1.01}};
     const ABirchEstimate estimate = estimateABirchThreshold(pilot, pilot.size(), 3);
     if(!(estimate.threshold > 0.0) || estimate.pilotClusters < 2)
